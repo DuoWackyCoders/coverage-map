@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Service Partner Coverage Map</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <style>
+
+    :root{
+  --evp-blue: #373DEC;
+  --evp-blue-dark: #2B30C8;
+}
+
+.brand-title{
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--evp-blue);
+  line-height: 1.1;
+}
+
+.sidebar{
+  background: #ffffff;
+  border: 6px solid var(--evp-blue);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebar-content{
+  flex: 1;
+  min-height: 0;   /* IMPORTANT: allows it to shrink and scroll */
+  overflow-y: auto;
+  padding-right: 6px; /* prevents scrollbar overlap */
+}
+
+.sidebar-header{
+  margin-bottom: 14px;
+}
+
+.brand-logo{
+  width: 140px;
+  height: auto;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.brand-subtitle{
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+.input-wrap{
+  position: relative;
+  width: 100%;
+}
+
+.clear-btn{
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 30px;
+  text-align: center;
+  padding: 0;
+  color: #6b7280;
+}
+
+
+#jobAddress{ padding-right: 48px; }
+
+    
+.clear-btn:hover{
+  border-color: #9ca3af;
+  color: #111827;
+}
+
+.btn-secondary{
+  background: #f9fafb;
+}
+.btn-secondary:hover{
+  background: #f3f4f6;
+}
+
+.btn-secondary{ 
+  margin-top: 8px; 
+}
+
+.section-title{
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.help details{
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.help summary{
+  cursor: pointer;
+  font-weight: 700;
+  color: #111827;
+}
+
+.help-body{
+  margin-top: 10px;
+  color: #374151;
+}
+
+.brand-footer{
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--evp-blue);
+  color: #ffffff;
+  font-size: 13px;
+  flex-shrink: 0;
+ }
+
+.footer-logo{
+  max-width: 200px;
+  height: auto;
+}
+
+.footer-logo-area{
+  flex-shrink: 0;           /* take remaining space under Data source */
+  display: flex;
+  align-items: center;      /* vertical center */
+  justify-content: center;  /* horizontal center */
+  padding: 18px 0;          /* breathing room */
+}
+
+@keyframes nearestPulse {
+  0%   { stroke-opacity: 1;   stroke-width: 5; }
+  70%  { stroke-opacity: 0.2; stroke-width: 10; }
+  100% { stroke-opacity: 0;   stroke-width: 12; }
+}
+
+/* Leaflet circleMarker draws as SVG path; className lands on that path */
+.nearest-ring {
+  animation: nearestPulse 1.6s ease-out infinite;
+}
+
+
+    
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .layout { display: grid; grid-template-columns: minmax(340px, 26vw) 1fr; height: 100%; }
+    /* sidebar base handled above in .sidebar block */
+    #map { height: 100%; }
+
+    .row { margin-bottom: 12px; }
+    label { display: block; font-size: 12px; color: #374151; margin-bottom: 6px; }
+    select,
+    
+    input[type="number"],
+    input[type="text"]{
+      width: 100%;
+      height: 40px;
+      padding: 0 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+
+    .legend { margin-top: 14px; font-size: 13px; color: #111827; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .swatch { width: 12px; height: 12px; border-radius: 999px; display: inline-block; border: 1px solid rgba(0,0,0,0.15); }
+    .muted { font-size: 12px; color: #6b7280; line-height: 1.4; }
+    .counts { font-size: 12px; color: #111827; margin-top: 10px; }
+    .btn { width: 100%; padding: 9px 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; cursor: pointer; }
+    .btn:hover { background: #f9fafb; }
+
+    /* Short screens (13" laptops, low vertical height): compress UI */
+@media (max-height: 820px){
+  .sidebar{ padding: 12px; }
+  .brand-title{ font-size: 24px; }
+  .brand-subtitle{ font-size: 12px; }
+
+  .row{ margin-bottom: 8px; }
+  label{ margin-bottom: 4px; }
+
+  select,
+  input[type="number"],
+  input[type="text"]{
+    height: 36px;
+    border-radius: 9px;
+  }
+
+  .btn{ padding: 8px 10px; }
+
+  .brand-footer{
+    margin-top: 10px;
+    padding: 8px 10px;
+  }
+
+  .footer-logo-area{
+    padding: 10px 0;
+  }
+  .footer-logo{ max-width: 160px; }
+
+  .legend{ margin-top: 10px; }
+}
+
+    @media (max-height: 820px){
+  /* Keep sidebar compact by collapsing results area */
+  #jobResults{
+    max-height: 120px;
+    overflow-y: auto;
+  }
+}
+
+
+  </style>
+</head>
+<body>
+  
+  <div class="layout">
+    <aside class="sidebar">
+
+      <div class="sidebar-content">
+        <div class="sidebar-header">
+          <div class="brand-title">Coverage Map</div>
+          <div class="brand-subtitle">Select a Service Partner to show locations and a radius coverage ring.</div>
+        </div> 
+      
+     <label class="field">
+      <span class="label">Department</span>
+      <select id="deptSelect">
+        <option value="TSE">Technical Operations Team</option>
+        <option value="DEPLOY">Deployment Team</option>
+      </select>
+    </label>
+
+        
+        
+      <div class="row" style="margin-top: 14px;">
+        <label for="partnerSelect">Service Partner</label>
+        <select id="partnerSelect">
+          <option value="All">All</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="stateSelect">State</label>
+        <select id="stateSelect">
+          <option value="All">All</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="roleSelect">Role</label>
+        <select id="roleSelect">
+          <option value="All">All</option>
+          <option value="Technician">Technician</option>
+          <option value="Electrician">Electrician</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="jobAddress">Job address</label>
+        <div class="input-wrap">
+          <input id="jobAddress" type="text" placeholder="e.g., Fort Worth, TX" />
+          <button id="clearJobBtn" class="clear-btn" type="button" aria-label="Clear job address">×</button>
+        </div>
+      </div>
+    
+    <div class="row">
+      <button class="btn" id="jobSearchBtn" type="button">Check coverage</button>
+    </div>
+
+    <div class="row">
+      <button class="btn btn-secondary" id="resetAllBtn" type="button">
+        Reset all
+      </button>
+    </div>
+    
+    <div class="row">
+      <div class="section-title">Coverage results</div>
+      <div class="muted" id="jobStatus">Enter an address and click “Check coverage”.</div>
+      <div id="jobResults" style="margin-top: 8px;"></div>
+    </div>
+
+
+      <button class="btn" id="fitBtn" type="button">Fit map to results</button>
+
+      <div class="counts" id="counts"></div>
+      
+      <div class="muted" id="filterStatus" style="margin-top:6px;"></div>
+
+      <div class="legend">
+        <div style="font-weight: 600;">Legend</div>
+        <div class="legend-item"><span class="swatch" style="background: #2563eb;"></span> Technician</div>
+        <div class="legend-item"><span class="swatch" style="background: #16a34a;"></span> Electrician</div>
+      </div>
+    </div> <!-- end .sidebar-content -->
+    
+      <div class="brand-footer">
+       Data source: <b>data.csv</b> in this repository.
+     </div>
+      
+      <div class="footer-logo-area">
+        <img class="footer-logo" src="evp-logo.png" alt="EVPassport" onerror="this.style.display='none'">
+      </div>
+
+    </aside>
+
+    <main id="map"></main>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- We'll create app.js in the next step -->
+  <script src="./app.js"></script>
+</body>
+</html>
